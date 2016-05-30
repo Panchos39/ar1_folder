@@ -1,0 +1,121 @@
+<?xml version="1.0"?>
+
+
+<robot name="ar1" xmlns:xacro="http://www.ros.org/wiki/xacro">
+	
+	<material name="Black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+    </material>
+
+    <material name="Red">
+        <color rgba="0.8 0.0 0.0 1.0"/>
+    </material>
+
+
+
+    <property name="M_PI" value="3.141592"/> <!--Remember Uncle Serezha-->
+
+    <property name="base_mass" value ="8" />
+    <property name="base_len" value = "0.25" />
+    <property name="base_width" value = "0.3" />
+    <property name="base_height" value = "0.65" />
+
+    <property name="body_mass" value = "8" />
+    <property name="body_len" value = "0.25" />
+    <property name="body_width" value = "0.4" />
+    <property name="body_height" value = "0.5" />
+
+
+
+
+    <xacro:macro name="inertial_matrix" params="mass">
+      <inertial>
+      	<mass value="${mass}" />
+        <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="0.5" iyz="0.0" izz="1.0" />
+      </inertial>
+   	</xacro:macro>
+
+   	<xacro:macro name="transmission_block" params="joint_name">
+		<transmission name="tran1">
+	    	<type>transmission_interface/SimpleTransmission</type>
+	    	<joint name="${joint_name}">
+	      		<hardwareInterface>PositionJointInterface</hardwareInterface>
+	    	</joint>
+	    	<actuator name="motor1">
+	      		<hardwareInterface>PositionJointInterface</hardwareInterface>
+	      		<mechanicalReduction>1</mechanicalReduction>
+	    	</actuator>
+	  	</transmission>
+   	</xacro:macro>
+
+   <link name = "world" />
+
+   <link name="base_link">
+   		<visual>
+   			<origin xyz="0 0 ${base_height/2}" rpy="0 0 0" />
+   			<geometry>
+   				<box size= "${base_len} ${base_width} ${base_height}" />
+   			</geometry>
+   			<material name = "Black" />
+   		</visual>
+
+   		<collision>
+   			<origin xyz="0 0 ${base_height/2}" rpy="0 0 0" />
+   			<geometry>
+   				<box size ="${base_len} ${base_width} ${base_height}" />
+   			</geometry>
+   		</collision>
+		<xacro:inertial_matrix mass="${base_mass}" />
+   </link>
+
+
+   <gazebo reference = "base_link">
+   	<material>Gazebo/Black</material>
+   </gazebo>
+
+   <link name = "body">
+   		<visual>
+   			<origin xyz="0 0 0" rpy="0 0 0" />
+   			<geometry>
+   				<box size = "${body_len} ${body_width} ${body_height}" />
+   			</geometry>
+   		</visual>
+   	
+   		<collision>
+   			<origin xyz = "0 0 ${body_height + body_height/2}" rpy = "0 0 0" />
+   			<geometry>
+   				<box size = "${body_len} ${body_width} ${body_height}" />
+   			</geometry>
+   		</collision>
+   		<xacro:inertial_matrix mass="${body_mass}" />
+
+   	</link>
+
+   	<gazebo reference = "body">
+   		<material>Gazebo/Red</material>
+   	</gazebo>
+
+   
+   	<joint name="fixed" type="fixed">
+		<parent link="world"/>
+		<child link="base_link"/>
+	</joint>
+
+	<joint name = "body_joint" type = "revolute">
+		<parent link = "base_link" />
+		<child link = "body" />
+		<origin xyz="0 0 ${base_height + body_height/2}" rpy="0 0 0" />
+		<axis xyz="0 0 1" />
+		<limit effort = "300" velocity = "1" lower = "-${M_PI/3}" upper = "${M_PI/3}" />
+		<dynamics damping = "50" friction = "1" />
+	</joint>
+
+	<xacro:transmission_block joint_name="body_joint"/>
+
+	 <!-- ros_control plugin -->
+  	<gazebo>
+    	<plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      	<robotNamespace>/ar1</robotNamespace>
+    	</plugin>
+  	</gazebo>
+</robot>
